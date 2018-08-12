@@ -44,7 +44,7 @@ f $$ x = App f x
 
 class Cartesian k => CCC k a a' b' | a a' -> b' where
    ccc :: a -> k a' b'
-instance (Tag a n,
+instance (Tag a,
          Build k a b a' b',
          Cartesian k)
     => CCC k (a->b) a' b' where
@@ -54,10 +54,10 @@ instance (Tag a n,
 ccc' :: CCC k f a' b' => Proxy k -> f -> k a' b' 
 ccc' _ f = ccc f
 
-class Tag a totaln | a -> totaln where
+class Tag a where
     val :: a
 
-instance (IsTup a flag, Tag' a Z flag n) => Tag a n where
+instance (IsTup a flag, Tag' a Z flag n) => Tag a where
     val = val' @a @Z @flag
 
 class Tag' a n (flag :: Bool) n'| a n flag -> n' where
