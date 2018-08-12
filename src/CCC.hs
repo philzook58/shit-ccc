@@ -24,7 +24,7 @@ class IsTup a b | a -> b
 instance {-# INCOHERENT #-} (c ~ 'True) => IsTup (a,b) c
 instance {-# INCOHERENT #-} (b ~ 'False) => IsTup a b
 
-data Leaf n = Leaf
+data Leaf n a = Leaf
 
 
 data Z
@@ -36,14 +36,14 @@ data App f a = App f a
 f $$ x = App f x
 
 
-class Cartesian k => CCC a k a' b' | a a' -> b' where
+class Cartesian k => CCC a k a' b' | a -> a' b' where
    ccc :: a -> k a' b'
 instance (Tag a n,
          Build a b a' b',
          Cartesian k)
     => CCC (a->b) k a' b' where
-        ccc f = build @a @b @a' @b'  -- build (Proxy :: Proxy labels) (Proxy :: Proxy b) res where
-                --res = f (val (Proxy :: Proxy a) (Proxy :: Proxy Z) (Proxy :: Proxy c))
+        ccc f = build @a @b @a' @b' res where  -- build (Proxy :: Proxy labels) (Proxy :: Proxy b) res where
+                res = f val 
 
 class Tag a totaln | a -> totaln where
     val :: a
@@ -60,7 +60,7 @@ instance (IsTup a flaga,
           Tag' b n'' flagb n') => Tag' (a,b) n 'True n'  where
     val' = (val' @a @n @flaga, val' @b @n'' @flagb)
 
-instance (a ~ Leaf n) => Tag' a n 'False (S n)  where
+instance (a ~ Leaf n a') => Tag' a n 'False (S n)  where
     val' = Leaf
 
 
@@ -77,11 +77,11 @@ instance (
     flag ~ Or flag' isc,
     In a c flaga, 
     In b c flagb) => In (a,b) c flag
-instance ((Leaf n == c) ~ flag) => In (Leaf n) c flag
+instance ((Leaf n a == c) ~ flag) => In (Leaf n a) c flag
 
 
-class Build input key a' b' | input key a' -> b' where
-   build :: Cartesian k => k a' b'
+class Build input key a' b' | input key -> a' b' where
+   build :: Cartesian k => key -> k a' b'
 
 instance ( 
     iseq ~ ((a,b) == key),
@@ -89,27 +89,32 @@ instance (
     In b key isinright,
     Cond iseq isinleft isinright (a,b) key a' b'
     ) => Build (a,b) key a' b' where
-    build = cond @iseq @isinleft @isinright @(a,b) @key @a'
+    build key = cond @iseq @isinleft @isinright @(a,b) @key @a' key
 
-instance (Leaf a ~ b, a' ~ b') => Build (Leaf a) b a' b' where
-    build = id
+instance (Leaf n a ~ b, a ~ a', a' ~ b') => Build (Leaf n a) b a' b' where
+    build _ = id
 
 
-class Cond iseq isinleft isinright input key a b | iseq isinleft isinright input key a -> b where
-    cond :: Cartesian k => k a b
-instance (a ~ b) => Cond 'True x x input key a b where
-    cond = id
-instance Build a key a' c' => Cond 'False 'True x (a,b) key (a',b') c' where
-    cond = (build @a @key @a') . fst
-instance Build b key b' c' => Cond 'False 'False 'True (a,b) key (a',b') c' where
-    cond = (build @b @key @b') . snd
+class Cond iseq isinleft isinright input key a b | iseq isinleft isinright input key -> a b where
+    cond :: Cartesian k => key -> k a b
+instance (a ~ b, StripLeaf input ~ a) => Cond 'True x x input key a b where
+    cond _ = id
+instance (Build a key a' c', StripLeaf b ~ b') => Cond 'False 'True x (a,b) key (a',b') c' where
+    cond key = (build @a @key @a' key) . fst
+instance (Build b key b' c', StripLeaf a ~ a') => Cond 'False 'False 'True (a,b) key (a',b') c' where
+    cond key = (build @b @key @b' key) . snd
 instance (Build input key1 a' c', 
           Build input key2 a' d',
           key ~ (key1,key2)) => Cond 'False 'False 'False input key a' (c',d') where
-    cond = fan (build @input @key1 @a') (build @input @key2 @a')
+    cond (key1,key2) = fan (build @input @key1 @a' key1) (build @input @key2 @a' key2)
+{-
+instance (Build input key a' b') => Cond 'False 'False 'False input (App f key) a' b' where
+    cond (App f key) = f . (build @input @key @a' key)
+-}
 
-
-
+type family (StripLeaf a) where
+    StripLeaf (a,b) = (StripLeaf a, StripLeaf b)
+    StripLeaf (Leaf n a) = a 
 
 
 
