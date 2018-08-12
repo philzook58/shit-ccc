@@ -24,8 +24,9 @@ dependencies:
 
 library:
   source-dirs: src
-  dependencies:
-    - constrained-categories
+#  dependencies:
+    #- constrained-categories
+    #- HList
 
 executables:
   shit-ccc-exe:
