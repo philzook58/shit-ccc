@@ -31,9 +31,9 @@ data FreeNumCat k a b where
 data FreeNum a b = Add a b | Mul a b | Neg
 
 data Add a b = Add a b
-instance Addable a where
+instance Addable a b c where
    (+) :: a -> b -> c
-instance Num a => Addable a a a
+instance Num a => Addable a a a -- Not a valid instance set
     (+) = Prelude.(+)
 instance Addable a b (Add a b) where
     (+) = Add
@@ -69,4 +69,14 @@ instance Cartesian (->) where
     fst (x,y) = x
     snd (x,y) = y
     dup x = (x,x)
+
+class NumCat k where
+    mulC :: Num a => k (a,a) a
+    negateC :: Num a => k a a
+    addC :: Num a => k (a,a) a
+
+instance NumCat (->) where
+    mulC = uncurry (*)
+    negateC = negate
+    addC = uncurry (+)
 

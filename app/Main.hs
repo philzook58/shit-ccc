@@ -1,6 +1,7 @@
 {-# LANGUAGE FunctionalDependencies, 
 FlexibleInstances, GADTs, DataKinds, TypeOperators, KindSignatures, PolyKinds,
-FlexibleContexts, UndecidableInstances, ScopedTypeVariables, NoImplicitPrelude #-}
+FlexibleContexts, UndecidableInstances, ScopedTypeVariables, NoImplicitPrelude,
+TypeApplications #-}
 module Main where
 
 import GHC.TypeLits
@@ -14,20 +15,24 @@ import Cat
 main :: IO ()
 main = putStrLn "Hi"
 
-{-
+
 example6 = ccc (\x -> x) 'a'
 
 
-example7 = ccc (\(x, y) -> x)  -- ('a','b')
+example7 = ccc @FreeCat (\(x, y) -> x)  -- ('a','b')
 
-example8 = ccc (\(x, y) -> y) --  ('a','b')
-example9 = ccc (\(x, y) -> (y,x)) --  ('a','b')
-example10 = ccc (\(( x, z),  y) -> (y,x)) -- ((1,'b'),'c')
-swappo = ccc $ \(( x, z),  y) -> (x,(z,y))
+example8 = ccc @FreeCat (\(x, y) -> y) --  ('a','b')
+example8andahalf = ccc' (Proxy :: Proxy FreeCat) (\(x, y) -> y)
+example9 = ccc @FreeCat (\(x, y) -> (y,x)) --  ('a','b')
+example10 = ccc @FreeCat (\(( x, z),  y) -> (y,x)) -- ((1,'b'),'c')
+swappo = ccc @FreeCat $ \((x, z),  y) -> (x,(z,y))
 
--}
-
-
+example11 = ccc @(->) $ \(x,y) -> BinApp (addC) x y
+example12 = ccc @(->) $ \(x,y) -> App negateC x
+-- infix synonyms
+(+++) = BinApp addC
+(***) = BinApp mulC
+example13 = ccc @(->) $ \(x,(y,z)) -> x +++ (y *** z)
 
 
 {-
