@@ -14,6 +14,7 @@ class Monoidal k => Cartesian k where
     dup :: k a (a,a) 
 
 fan f g = (par f g) . dup
+
 {-
 data FreeCat k a b where
     Comp :: FreeCat k b c -> FreeCat k a b -> FreeCat k a c
@@ -22,6 +23,21 @@ data FreeCat k a b where
 
 data FreeMon k a b where
     Par :: FreeCat a b -> FreeCat c d -> FreeCat (a,c) (b,d)
+
+data FreeNumCat k a b where
+    AddC :: FreeNumCat k (a,a) a
+    Morph :: k a b -> FreeNumCat k a b
+
+data FreeNum a b = Add a b | Mul a b | Neg
+
+data Add a b = Add a b
+instance Addable a where
+   (+) :: a -> b -> c
+instance Num a => Addable a a a
+    (+) = Prelude.(+)
+instance Addable a b (Add a b) where
+    (+) = Add
+
 -}
 
 data FreeCat a b where
