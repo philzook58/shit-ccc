@@ -42,11 +42,10 @@ data App f a = App f a
 f $$ x = App f x
 binApp f a b = App f (a,b)
 
-class Cartesian k => CCC k a a' b' | a a' -> b' where
+class CCC k a a' b' | a a' -> b' where
    toCcc :: a -> k a' b'
 instance (Tag a,
-         Build k a b a' b',
-         Cartesian k)
+         Build k a b a' b')
     => CCC k (a->b) a' b' where
         toCcc f = build @k @a @b @a' @b' res where  -- build (Proxy :: Proxy labels) (Proxy :: Proxy b) res where
                 res = f val 
@@ -89,7 +88,7 @@ instance ((Leaf n == c) ~ flag) => In (Leaf n) c flag
 
 
 class Build k input key a' b' | input key a' -> b' where
-   build :: Cartesian k => key -> k a' b'
+   build :: key -> k a' b'
 
 instance ( 
     iseq ~ ((a,b) == key),
@@ -99,27 +98,35 @@ instance (
     ) => Build k (a,b) key a' b' where
     build key = cond @k @iseq @isinleft @isinright @(a,b) @key @a' key
 
-instance (Leaf n ~ b, a' ~ b') => Build k (Leaf n) b a' b' where
+instance (Leaf n ~ b, a' ~ b', Category k) => Build k (Leaf n) b a' b' where
     build _ = id
 
 
 class Cond k iseq isinleft isinright input key a b | iseq isinleft isinright input key a -> b where
-    cond :: Cartesian k => key -> k a b
+    cond :: key -> k a b
 -- Find the key is in the input
-instance (a ~ b) => Cond k 'True x x input key a b where
+instance (a ~ b, Category k) => Cond k 'True x x input key a b where
     cond _ = id
-instance (Build k a key a' c', (a',b') ~ ab) => Cond k 'False 'True x (a,b) key ab c' where -- get those input types inferred baby!
+instance (Build k a key a' c', 
+    (a',b') ~ ab,
+    Cartesian k
+    ) => Cond k 'False 'True x (a,b) key ab c' where -- get those input types inferred baby!
     cond key = (build @k @a @key @a' key) . fst
-instance (Build k b key b' c', (a',b') ~ ab) => Cond k 'False 'False 'True (a,b) key ab c' where
+instance (Build k b key b' c', 
+    (a',b') ~ ab,
+    Cartesian k
+    ) => Cond k 'False 'False 'True (a,b) key ab c' where
     cond key = (build @k @b @key @b' key) . snd
 
 -- Otherwise destruct on the key
 instance (Build k input key1 a' c', 
-          Build k input key2 a' d') => Cond k 'False 'False 'False input (key1,key2) a' (c',d') where
+          Build k input key2 a' d',
+          Cartesian k) => Cond k 'False 'False 'False input (key1,key2) a' (c',d') where
     cond (key1,key2) = fan (build @k @input @key1 @a' key1) (build @k @input @key2 @a' key2)
 
 instance (Build k input key a' b',
-    f ~ k b' c')
+    f ~ k b' c',
+    Category k)
  => Cond k 'False 'False 'False input (App f key) a' c' where
     cond (App f key) = f . (build @k @input @key @a' key)
 
