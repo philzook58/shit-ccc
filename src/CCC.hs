@@ -13,9 +13,9 @@
 module CCC (
       CCC
     , App (App)
-    , BinApp (BinApp)
-    , ccc' 
-    , ccc )where
+    , binApp
+    , toCcc' 
+    , toCcc )where
 
 import Cat
 import Data.Proxy 
@@ -37,22 +37,22 @@ data S a
 
 
 data App f a = App f a
-data BinApp f a b = BinApp f a b
+
 
 f $$ x = App f x
-
+binApp f a b = App f (a,b)
 
 class Cartesian k => CCC k a a' b' | a a' -> b' where
-   ccc :: a -> k a' b'
+   toCcc :: a -> k a' b'
 instance (Tag a,
          Build k a b a' b',
          Cartesian k)
     => CCC k (a->b) a' b' where
-        ccc f = build @k @a @b @a' @b' res where  -- build (Proxy :: Proxy labels) (Proxy :: Proxy b) res where
+        toCcc f = build @k @a @b @a' @b' res where  -- build (Proxy :: Proxy labels) (Proxy :: Proxy b) res where
                 res = f val 
 
-ccc' :: CCC k f a' b' => Proxy k -> f -> k a' b' 
-ccc' _ f = ccc f
+toCcc' :: CCC k f a' b' => Proxy k -> f -> k a' b' 
+toCcc' _ f = toCcc f
 
 class Tag a where
     val :: a
@@ -122,11 +122,6 @@ instance (Build k input key a' b',
     f ~ k b' c')
  => Cond k 'False 'False 'False input (App f key) a' c' where
     cond (App f key) = f . (build @k @input @key @a' key)
-
-instance (Build k input (key1, key2) a' (b',b''),
-    f ~ k (b',b'') c')
- => Cond k 'False 'False 'False input (BinApp f key1 key2) a' c' where
-    cond (BinApp f key1 key2) = f . (build @k @input @(key1,key2) @a' (key1,key2))
 
 -- Could I replace almost everything with App? A very powerful construct
 -- This is a of some relation to defunctionalization like in HList
